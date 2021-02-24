@@ -16,6 +16,95 @@ struct Record {
     char* bio;
     long long int m_id;
 };
+
+//struct RTRange
+//{
+//public:
+//    int Leftup;
+//    int Leftdown;
+//    int Rightup;
+//    int Rightdown;
+//} RTreeRange;
+
+struct RTInter
+{
+public:
+    double min;
+    double max;
+    RSTInter(){}
+    RSTInter(double min1,double max1){
+        min = min1;
+        max = max1;
+    }
+};
+
+typedef std::vector<RTInter> RTRange;
+
+class RTreeNode{
+public:
+    int type;
+    RTreeNode* parent;
+    int ChildNum;
+    RTRange range;
+    RTreeNode** childSet;
+
+public:
+    RTreeNode(int M = DefaultMValue);// 自动声明该节点type为非叶子节点
+    RTreeNode(int dim, int M);
+    RTreeNode(int type_, int dim, int M);
+    virtual ~RSTNode();
+    virtual int GetDataType(){return 0;}
+    virtual void OutPutData(std::ostream &output){}
+    virtual void GetDataPoints(vector<double> &vec);
+    void AddNode(RTreeNode* pChild);
+    void AddNodeAndUpdateRange(RTreeNode* pChild);
+    void UpdateRange(RTRange& range);// range为新加入区域
+    void UpdateRange();
+    int GetIndexOfNode(RTreeNode* pChild);
+    void deleteNode(RTreeNode* pChild);
+    void deleteNode(int& indexToDelete);
+    void deleteNodeWithoutReleaseMem(RTreeNode* pChild);
+    void deleteNodeWithoutReleaseMem(int& indexToDelete);
+    double ComputeNodeOverlap(int childInd);
+    double ComputeNodeOverlap(int childInd, RTRange& range);
+};
+
+class RTree{
+public:
+    int height;// 树的高度，从跟开始到叶子节点的高度，只有一个根时高度为
+    int dim;// 树的维度
+    RTreeNode* Root;// 树的根节点
+    int m;// 子节点的最小数目
+    int M;// 子节点的最大数目
+    double *pVol;
+public:
+    RTree() : dim(0), m(0), M(0), height(0), Root(NULL),pVol(NULL) {}
+    RTree(int dim_, int m_, int M_) : dim(dim_), m(m_), M(M_), height(1) {Root = new RTreeNode(Leaf, dim, M);pVol=NULL;}
+    virtual ~RTree();
+    void ReleaseRec(RTreeNode* pNode);
+
+    virtual void InsertData(RTreeNode* data);
+    void InsertNode(RTreeNode* insertNode, int h);
+    virtual RTreeNode* ChooseLeaf(RTreeNode* data);
+    RTreeNode* ChooseNode(RTreeNode* insertNode, int h);
+    virtual void AdjustTree(RTreeNode* leafNode);
+    virtual void Split(RTreeNode* splitNode,RTreeNode*& newSplitNode1,RTreeNode*& newSplitNode2);
+    void BruteForceSplit(RTreeNode* splitNode,RTreeNode*& newSplitNode1,RTreeNode*& newSplitNode2);
+    void QuadraticSplit(RTreeNode* splitNode,RTreeNode*& newSplitNode1,RTreeNode*& newSplitNode2);
+    void QuadraticSplit2(RTreeNode* splitNode,RTreeNode*& newSplitNode1,RTreeNode*& newSplitNode2);
+    void LinearSplit(RTreeNode* splitNode,RTreeNode*& newSplitNode1,RTreeNode*& newSplitNode2);
+
+    void PickSeedsQudratic(RTreeNode* splitNode,int& firstSeedIndex,int& secondSeedIndex);
+    void PickSeedsQudratic2(RTreeNode* splitNode,int& firstSeedIndex,int& secondSeedIndex);
+
+}
+struct RTNodeValue
+{
+    int nodeInd;
+    double m_value;
+};
+
+
 class Block{
 private:
     vector<Record> records;
@@ -57,6 +146,9 @@ public:
         }
     }
 };
+
+
+
 
 //class HashTable{
 //private:
@@ -122,7 +214,7 @@ public:
 //    }
 //};
 
-
+/*
 
 vector<string> split(string str,string pattern)
 {
@@ -143,7 +235,7 @@ vector<string> split(string str,string pattern)
     }
     return result;
 }
-
+*/
 class Filehandler{
 private:
     fstream fin;
@@ -238,7 +330,7 @@ void create_table(HashTable *table, Filehandler *file){
 
 int main(int argc, char *argv[]) {
 
-    string filename = "Employee.csv";
+    string filename = "Emp.csv";
     vector<Record*> emp;
     int rec_size;
     char action;
@@ -257,7 +349,5 @@ int main(int argc, char *argv[]) {
             create_table(&ht,&newfile);
         }
     }while (action !='0');
-        newfile.savefile(&ht);
+    newfile.savefile(&ht);
 }
-
-
