@@ -102,7 +102,7 @@ int main( int argc, char* argv[] )
         // Index the file
         string this_line  = ve[i];
         vector<string> kkkey = split(ve[i],",");
-        rectVector.push_back( Rect( atoi(kkkey[0].c_str()), atoi(kkkey[0].c_str()), atoi(kkkey[0].c_str()) + atoi(kkkey[3].c_str()), atoi(kkkey[0].c_str()) + atoi(kkkey[3].c_str()) ) );
+        rectVector.push_back( Rect( atoi(kkkey[0].c_str()), atoi(kkkey[0].c_str()), atoi(kkkey[3].c_str()), atoi(kkkey[3].c_str()) ) );
     }
     fin.close();
 
@@ -134,7 +134,7 @@ int main( int argc, char* argv[] )
             cin.ignore();
 
             if (id >= 0 && m_id >= 0){
-                rectVector.push_back( Rect( id, id, id + m_id, id + m_id ) );
+                rectVector.push_back( Rect( id, id, m_id, m_id ) );
             }else
                 cout << "Creating error......." << std::endl;
         }
