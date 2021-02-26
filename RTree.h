@@ -8,7 +8,7 @@
 #include <math.h>
 #include <assert.h>
 #include <stdlib.h>
-
+#include <limits>
 #include <algorithm>
 #include <functional>
 
@@ -54,8 +54,6 @@ template<class DATATYPE, class ELEMTYPE, int NUMDIMS,
          class ELEMTYPEREAL = ELEMTYPE, int TMAXNODES = 8, int TMINNODES = TMAXNODES / 2>
 class RTree
 {
-  static_assert(std::numeric_limits<ELEMTYPEREAL>::is_iec559, "'ELEMTYPEREAL' accepts floating-point types only");
-
 protected:
 
   struct Node;  // Fwd decl.  Used by other internal structs and iterator
@@ -87,15 +85,6 @@ public:
   /// \param a_max Max of bounding rect
   /// \param a_dataId Positive Id of data.  Maybe zero, but negative numbers not allowed.
   void Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], const DATATYPE& a_dataId);
-
-  /// Find all within search rectangle
-  /// \param a_min Min of search bounding rect
-  /// \param a_max Max of search bounding rect
-  /// \param a_searchResult Search result array.  Caller should set grow size. Function will reset, not append to array.
-  /// \param a_resultCallback Callback function to return result.  Callback should return 'true' to continue searching
-  /// \param a_context User context to pass as parameter to a_resultCallback
-  /// \return Returns the number of entries found
-  int Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], std::function<bool (const DATATYPE&)> callback) const;
 
   /// Remove all entries from tree
   void RemoveAll();
@@ -357,7 +346,6 @@ protected:
   void FreeListNode(ListNode* a_listNode);
   bool Overlap(Rect* a_rectA, Rect* a_rectB) const;
   void ReInsert(Node* a_node, ListNode** a_listNode);
-  bool Search(Node* a_node, Rect* a_rect, int& a_foundCount, std::function<bool (const DATATYPE&)> callback) const;
   void RemoveAllRec(Node* a_node);
   void Reset();
   void CountRec(Node* a_node, int& a_count);
@@ -396,7 +384,7 @@ public:
     return fopen_s(&m_file, a_fileName, mode) == 0;
 #else
     m_file = fopen(a_fileName, mode);
-    return m_file != nullptr;
+    return m_file != NULL;
 #endif
   }
 
@@ -530,34 +518,6 @@ void RTREE_QUAL::Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMD
 
   RemoveRect(&rect, a_dataId, &m_root);
 }
-
-
-RTREE_TEMPLATE
-int RTREE_QUAL::Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], std::function<bool (const DATATYPE&)> callback) const
-{
-#ifdef _DEBUG
-  for(int index=0; index<NUMDIMS; ++index)
-  {
-    ASSERT(a_min[index] <= a_max[index]);
-  }
-#endif //_DEBUG
-
-  Rect rect;
-
-  for(int axis=0; axis<NUMDIMS; ++axis)
-  {
-    rect.m_min[axis] = a_min[axis];
-    rect.m_max[axis] = a_max[axis];
-  }
-
-  // NOTE: May want to return search result another way, perhaps returning the number of found elements here.
-
-  int foundCount = 0;
-  Search(m_root, &rect, foundCount, callback);
-
-  return foundCount;
-}
-
 
 RTREE_TEMPLATE
 int RTREE_QUAL::Count()
@@ -1600,52 +1560,6 @@ void RTREE_QUAL::ReInsert(Node* a_node, ListNode** a_listNode)
   newListNode->m_next = *a_listNode;
   *a_listNode = newListNode;
 }
-
-
-// Search in an index tree or subtree for all data retangles that overlap the argument rectangle.
-RTREE_TEMPLATE
-bool RTREE_QUAL::Search(Node* a_node, Rect* a_rect, int& a_foundCount, std::function<bool (const DATATYPE&)> callback) const
-{
-  ASSERT(a_node);
-  ASSERT(a_node->m_level >= 0);
-  ASSERT(a_rect);
-
-  if(a_node->IsInternalNode())
-  {
-    // This is an internal node in the tree
-    for(int index=0; index < a_node->m_count; ++index)
-    {
-      if(Overlap(a_rect, &a_node->m_branch[index].m_rect))
-      {
-        if(!Search(a_node->m_branch[index].m_child, a_rect, a_foundCount, callback))
-        {
-          // The callback indicated to stop searching
-          return false;
-        }
-      }
-    }
-  }
-  else
-  {
-    // This is a leaf node
-    for(int index=0; index < a_node->m_count; ++index)
-    {
-      if(Overlap(a_rect, &a_node->m_branch[index].m_rect))
-      {
-        DATATYPE& id = a_node->m_branch[index].m_data;
-        ++a_foundCount;
-
-          if(callback && !callback(id))
-          {
-            return false; // Don't continue searching
-          }
-      }
-    }
-  }
-
-  return true; // Continue searching
-}
-
 
 #undef RTREE_TEMPLATE
 #undef RTREE_QUAL
